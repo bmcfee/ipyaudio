@@ -9,7 +9,7 @@ import IPython.html.widgets
 
 class AudioConnector(object):
 
-    def __init__(self, handler, sr=22050, window=2048, dtype=np.float32, channels=1, width=2, output=False, **kwargs):
+    def __init__(self, handler, sr=22050, window=1024, dtype=np.float32, channels=1, width=2, output=False, drop_frames=True, **kwargs):
 
         self.channels = channels
         self.width = width
@@ -21,6 +21,7 @@ class AudioConnector(object):
         self.dtype = dtype
 
         self.output = output
+        self.drop_frames = drop_frames
 
         self.kwargs = kwargs
 
@@ -51,17 +52,25 @@ class AudioConnector(object):
 
     def __audio_callback(self, in_data, frame_count, time_info, status):
 
-        # TODO:   2014-10-18 10:33:11 by Brian McFee <brian.mcfee@nyu.edu>
-        #  frame-drop here
+        time_in = time_info['current_time'] - time_info['input_buffer_adc_time']
 
-        # Interpret the buffer as a numpy array of floats
-        y = self.scale * np.frombuffer(in_data, self.fmt).astype(self.dtype)
+        # ideal frame rate = self.window / self.samples
+        if self.drop_frames and (time_in * self.sr > self.window):
+            # TODO Log: frame drop
+            pass
+        else:
+            # Interpret the buffer as a numpy array of floats
+            y = self.scale * np.frombuffer(in_data, self.fmt).astype(self.dtype)
 
-        # Pass data to the callback
-        self.handler(y, self.sr, **self.kwargs)
+            # Pass data to the callback
+            self.handler(y, self.sr, **self.kwargs)
 
         # Let pyaudio continue
-        return (in_data, pyaudio.paContinue)
+        if self.output:
+            return (in_data, pyaudio.paContinue)
+        else:
+            return (None, pyaudio.paContinue)
+
 
 
     def __del__(self):
