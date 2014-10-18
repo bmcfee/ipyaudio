@@ -1,21 +1,53 @@
 #!/usr/bin/env python
-# CREATED:2014-10-18 10:24:43 by Brian McFee <brian.mcfee@nyu.edu>
-# Bridge IPython widgets with PortAudio controls and DSP callbacks
+'''Bridge IPython widgets with PortAudio controls and DSP callbacks'''
 
 import pyaudio
 import numpy as np
 
 import IPython.html.widgets
 
+
 class AudioConnector(object):
+    '''A class to connect a PyAudio stream to a callback function.'''
 
-    def __init__(self, handler, sr=22050, window=1024, dtype=np.float32, 
-                 channels=1, width=2, output=False, drop_frames=True, **kwargs):
+    def __init__(self, callback, sr=22050, window=1024, dtype=np.float32,
+                 channels=1, width=2, output=False, drop_frames=True,
+                 **kwargs):
+        '''
+        :parameters:
+            - callback : function
+              Must support the positional arguments:
+                - y : np.ndarray
+                - sr : int
 
+            - sr : int > 0
+              The sampling rate from PyAudio
+
+            - window : int > 0
+              The number of samples to buffer
+
+            - dtype : type
+              The data type for the np.ndarray buffer
+
+            - channels : int
+              The number of channels to read
+
+            - width : int
+              The number of bytes per sample
+
+            - output : bool
+              Enable audio pass-through
+
+            - drop_frames : bool
+              Drop frames when the latency becomes too high
+
+            - **kwargs :
+              Additional keyword arguments to pass through to `callback`
+        '''
         self.channels = channels
         self.width = width
 
-        self.handler = handler
+        self.callback = callback
 
         self.sr = sr
         self.window = window
@@ -33,9 +65,10 @@ class AudioConnector(object):
         # Build the portaudio interface
         self.port_ = pyaudio.PyAudio()
 
+        my_fmt = self.port_.get_format_from_width(self.width)
         # Instantiate the stream
         self.stream_ = self.port_.open(start=False,
-                                       format=self.port_.get_format_from_width(self.width),
+                                       format=my_fmt,
                                        frames_per_buffer=self.window,
                                        channels=self.channels,
                                        rate=self.sr,
@@ -44,16 +77,22 @@ class AudioConnector(object):
                                        stream_callback=self.__audio_callback)
 
     def start(self):
+        '''Start the audio stream.'''
 
         self.stream_.start_stream()
 
     def stop(self):
-        
+        '''Stop (pause) the audio stream.'''
+
         self.stream_.stop_stream()
 
-    def __audio_callback(self, in_data, frame_count, time_info, status):
+    def __audio_callback(self, in_data, frame_count, t_info, status):
+        '''Callback function for PyAudio.
 
-        time_in = time_info['current_time'] - time_info['input_buffer_adc_time']
+        See PyAudio.Stream documentation for details.
+        '''
+
+        time_in = t_info['current_time'] - t_info['input_buffer_adc_time']
 
         # ideal frame rate = self.window / self.samples
         if self.drop_frames and (time_in * self.sr > self.window):
@@ -61,10 +100,11 @@ class AudioConnector(object):
             pass
         else:
             # Interpret the buffer as a numpy array of floats
-            y = self.scale * np.frombuffer(in_data, self.fmt).astype(self.dtype)
+            y = self.scale * np.frombuffer(in_data,
+                                           self.fmt).astype(self.dtype)
 
             # Pass data to the callback
-            self.handler(y, self.sr, **self.kwargs)
+            self.callback(y, self.sr, **self.kwargs)
 
         # Let pyaudio continue
         if self.output:
@@ -72,9 +112,11 @@ class AudioConnector(object):
         else:
             return (None, pyaudio.paContinue)
 
-
-
     def __del__(self):
+        '''Class destructor.
+
+        This stops the stream and terminates the PortAudio connection.
+        '''
 
         # Close the stream
         self.stop()
@@ -84,9 +126,32 @@ class AudioConnector(object):
 
 
 def playback_widget(audio_connector, play=u"\u25B6", pause=u"\u2161"):
+    '''Construct a toggle widget to control an AudioConnector object.
+
+    :usage:
+        >>> audio_connector = ipyaudio.AudioConnector(my_callback)
+        >>> widget = ipyaudio.playback_widget(audio_connector)
+        >>> IPython.display(widget)
+
+    :parameters:
+        - audio_connector : ipyaudio.AudioConnector
+          An AudioConnector object
+
+        - play : unicode or str
+          Text to display on the widget while inactive
+          (default: the 'play' symbol)
+
+        - pause : unicode or str
+          Text to display on the widget while active
+          (default: the 'pause' symbol)
+
+    :returns:
+        - widget : IPython.html.ToggleButtonWidget
+          A toggle button widget connected to the AudioConnector.
+    '''
 
     def __widget_callback(name, old, new):
-
+        '''Helper callback to dispatch button click actions'''
         key, active = new
         if key != 'value':
             return
@@ -97,7 +162,6 @@ def playback_widget(audio_connector, play=u"\u25B6", pause=u"\u2161"):
         else:
             widget.description = play
             audio_connector.stop()
-
 
     # Build a widget, off by default
     widget = IPython.html.widgets.ToggleButtonWidget(description=play,
