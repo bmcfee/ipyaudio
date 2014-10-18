@@ -11,7 +11,7 @@ setup(
     long_description="""\
         Bridge PortAudio, IPython interactive widgets, and DSP callbacks
     """,
-    packages=['ipyaudio.py'],
+    packages=['ipyaudio'],
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
