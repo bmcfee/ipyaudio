@@ -9,7 +9,8 @@ import IPython.html.widgets
 
 class AudioConnector(object):
 
-    def __init__(self, handler, sr=22050, window=1024, dtype=np.float32, channels=1, width=2, output=False, drop_frames=True, **kwargs):
+    def __init__(self, handler, sr=22050, window=1024, dtype=np.float32, 
+                 channels=1, width=2, output=False, drop_frames=True, **kwargs):
 
         self.channels = channels
         self.width = width
