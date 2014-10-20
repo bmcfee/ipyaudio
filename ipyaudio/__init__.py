@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 '''Bridge IPython widgets with PortAudio controls and DSP callbacks'''
 
-import pyaudio
-import numpy as np
 import logging
-
+import numpy as np
+import pyaudio
 import IPython.html.widgets
 
 
@@ -15,8 +14,7 @@ class AudioConnector(object):
     '''A class to connect a PyAudio stream to a callback function.'''
 
     def __init__(self, callback, sr=22050, window=1024, dtype=np.float32,
-                 channels=1, width=2, output=False, drop_frames=False,
-                 **kwargs):
+                 channels=1, width=2, output=False, **kwargs):
         '''
         :parameters:
             - callback : function
@@ -42,9 +40,6 @@ class AudioConnector(object):
             - output : bool
               Enable audio pass-through
 
-            - drop_frames : bool
-              Drop frames when the latency becomes too high
-
             - **kwargs :
               Additional keyword arguments to pass through to `callback`
         '''
@@ -58,7 +53,6 @@ class AudioConnector(object):
         self.dtype = dtype
 
         self.output = output
-        self.drop_frames = drop_frames
 
         self.kwargs = kwargs
 
@@ -111,22 +105,14 @@ class AudioConnector(object):
         See PyAudio.Stream documentation for details.
         '''
 
-        time_in = t_info['current_time'] - t_info['input_buffer_adc_time']
+        # Interpret the buffer as a numpy array of floats
+        y = self.scale * np.frombuffer(in_data, self.fmt).astype(self.dtype)
 
-        # ideal frame rate = self.window / self.samples
-        if self.drop_frames and (time_in * self.sr > self.window):
-            # TODO Log: frame drop
-            pass
-        else:
-            # Interpret the buffer as a numpy array of floats
-            y = self.scale * np.frombuffer(in_data,
-                                           self.fmt).astype(self.dtype)
-
-            # Pass data to the callback
-            try:
-                self.callback(y, self.sr, **self.kwargs)
-            except Exception as e_callback:
-                LOG.error('Exception in callback: {0}'.format(e_callback))
+        # Pass data to the callback
+        try:
+            self.callback(y, self.sr, **self.kwargs)
+        except Exception as e_callback:
+            LOG.error('Exception in callback: {0}'.format(e_callback))
 
         # Let pyaudio continue
         if self.output:
