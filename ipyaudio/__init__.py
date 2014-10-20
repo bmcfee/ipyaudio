@@ -3,9 +3,12 @@
 
 import pyaudio
 import numpy as np
+import logging
 
 import IPython.html.widgets
 
+
+LOGGER = logging.getLogger(__name__)
 
 class AudioConnector(object):
     '''A class to connect a PyAudio stream to a callback function.'''
@@ -120,8 +123,7 @@ class AudioConnector(object):
             try:
                 self.callback(y, self.sr, **self.kwargs)
             except Exception as callback_exception:
-                print(callback_exception)
-                pass
+                LOGGER.error('Exception in callback function: {0}'.format(callback_exception))
 
         # Let pyaudio continue
         if self.output:
