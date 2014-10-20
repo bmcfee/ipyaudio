@@ -8,7 +8,8 @@ import logging
 import IPython.html.widgets
 
 
-LOGGER = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
+
 
 class AudioConnector(object):
     '''A class to connect a PyAudio stream to a callback function.'''
@@ -82,11 +83,13 @@ class AudioConnector(object):
     def start(self):
         '''Start the audio stream.'''
 
+        LOG.info('Stream started')
         self.stream_.start_stream()
 
     def stop(self):
         '''Stop (pause) the audio stream.'''
 
+        LOG.info('Stream stopped')
         self.stream_.stop_stream()
 
     def set_state(self, active):
@@ -122,8 +125,8 @@ class AudioConnector(object):
             # Pass data to the callback
             try:
                 self.callback(y, self.sr, **self.kwargs)
-            except Exception as callback_exception:
-                LOGGER.error('Exception in callback function: {0}'.format(callback_exception))
+            except Exception as e_callback:
+                LOG.error('Exception in callback: {0}'.format(e_callback))
 
         # Let pyaudio continue
         if self.output:
