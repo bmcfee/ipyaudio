@@ -86,6 +86,20 @@ class AudioConnector(object):
 
         self.stream_.stop_stream()
 
+
+    def set_state(self, active):
+        '''Set the state:
+
+        :parameters:
+          - active : bool
+            If true, start streaming
+            If false, stop streaming
+        '''
+        if active:
+            self.start()
+        else:
+            self.stop()
+
     def __audio_callback(self, in_data, frame_count, t_info, status):
         '''Callback function for PyAudio.
 
@@ -112,6 +126,21 @@ class AudioConnector(object):
         else:
             return (None, pyaudio.paContinue)
 
+    def test_callback(self, y=None):
+        '''Test the stream callback.
+        This can be useful for debugging your callback function without depending on PortAudio.
+
+        :parameters:
+          - y : ndarray or None
+            Buffer to pass back as data to the callback.  If none, white noise is used.
+        '''
+
+        if y is None:
+            y = np.random.randn(self.window)
+
+        self.callback(y, self.sr, **self.kwargs)
+
+
     def __del__(self):
         '''Class destructor.
 
@@ -124,51 +153,27 @@ class AudioConnector(object):
         # Close the portaudio connector
         self.port_.terminate()
 
-
-def playback_widget(audio_connector, play=u"\u25B6", pause=u"\u2161"):
+def playback_widget(audio_connector):
     '''Construct a toggle widget to control an AudioConnector object.
 
     :usage:
         >>> audio_connector = ipyaudio.AudioConnector(my_callback)
-        >>> widget = ipyaudio.playback_widget(audio_connector)
-        >>> IPython.display(widget)
+        >>> interact_widget = ipyaudio.playback_widget(audio_connector)
+        >>> IPython.display(interact_widget)
 
     :parameters:
         - audio_connector : ipyaudio.AudioConnector
           An AudioConnector object
 
-        - play : unicode or str
-          Text to display on the widget while inactive
-          (default: the 'play' symbol)
-
-        - pause : unicode or str
-          Text to display on the widget while active
-          (default: the 'pause' symbol)
-
     :returns:
-        - widget : IPython.html.ToggleButtonWidget
-          A toggle button widget connected to the AudioConnector.
+        - interact : function
+          An IPython interact function
     '''
 
-    def __widget_callback(name, old, new):
-        '''Helper callback to dispatch button click actions'''
-        key, active = new
-        if key != 'value':
-            return
+    play_widget = IPython.html.widgets.ToggleButtonWidget(value=False)
 
-        if active:
-            widget.description = pause
-            audio_connector.start()
-        else:
-            widget.description = play
-            audio_connector.stop()
+    def wrapper_f(**kwargs):
+        '''A wrapper function to handle instancemethods in interact'''
+        audio_connector.set_state(**kwargs)
 
-    # Build a widget, off by default
-    widget = IPython.html.widgets.ToggleButtonWidget(description=play,
-                                                     value=False)
-
-    # connect to the callback
-    widget.on_trait_change(__widget_callback,
-                           name=['_property_lock'])
-
-    return widget
+    return IPython.html.widgets.interact(wrapper_f, active=play_widget)
