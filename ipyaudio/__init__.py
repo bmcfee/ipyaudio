@@ -169,7 +169,7 @@ def playback_widget(audio_connector):
     :usage:
         >>> audio_connector = ipyaudio.AudioConnector(my_callback)
         >>> interact_widget = ipyaudio.playback_widget(audio_connector)
-        >>> IPython.display(interact_widget)
+        >>> IPython.display.display(interact_widget)
 
     :parameters:
         - audio_connector : ipyaudio.AudioConnector
