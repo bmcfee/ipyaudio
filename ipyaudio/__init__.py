@@ -166,8 +166,8 @@ def playback_widget(audio_connector):
           An AudioConnector object
 
     :returns:
-        - interact : function
-          An IPython interact function
+        - interact : IPython container widget
+          An IPython interact widget
     '''
 
     play_widget = IPython.html.widgets.ToggleButtonWidget(value=False)
@@ -176,4 +176,4 @@ def playback_widget(audio_connector):
         '''A wrapper function to handle instancemethods in interact'''
         audio_connector.set_state(**kwargs)
 
-    return IPython.html.widgets.interact(wrapper_f, active=play_widget)
+    return IPython.html.widgets.interactive(wrapper_f, active=play_widget)
