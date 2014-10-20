@@ -11,7 +11,7 @@ class AudioConnector(object):
     '''A class to connect a PyAudio stream to a callback function.'''
 
     def __init__(self, callback, sr=22050, window=1024, dtype=np.float32,
-                 channels=1, width=2, output=False, drop_frames=True,
+                 channels=1, width=2, output=False, drop_frames=False,
                  **kwargs):
         '''
         :parameters:
@@ -117,7 +117,11 @@ class AudioConnector(object):
                                            self.fmt).astype(self.dtype)
 
             # Pass data to the callback
-            self.callback(y, self.sr, **self.kwargs)
+            try:
+                self.callback(y, self.sr, **self.kwargs)
+            except Exception as callback_exception:
+                print(callback_exception)
+                pass
 
         # Let pyaudio continue
         if self.output:
