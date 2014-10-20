@@ -86,7 +86,6 @@ class AudioConnector(object):
 
         self.stream_.stop_stream()
 
-
     def set_state(self, active):
         '''Set the state:
 
@@ -128,18 +127,19 @@ class AudioConnector(object):
 
     def test_callback(self, y=None):
         '''Test the stream callback.
-        This can be useful for debugging your callback function without depending on PortAudio.
+        This can be useful for debugging your callback function without
+        depending on PortAudio.
 
         :parameters:
           - y : ndarray or None
-            Buffer to pass back as data to the callback.  If none, white noise is used.
+            Buffer to pass back as data to the callback.
+            If none, white noise is used.
         '''
 
         if y is None:
             y = np.random.randn(self.window)
 
         self.callback(y, self.sr, **self.kwargs)
-
 
     def __del__(self):
         '''Class destructor.
@@ -152,6 +152,7 @@ class AudioConnector(object):
 
         # Close the portaudio connector
         self.port_.terminate()
+
 
 def playback_widget(audio_connector):
     '''Construct a toggle widget to control an AudioConnector object.
