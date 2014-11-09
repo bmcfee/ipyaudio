@@ -22,6 +22,9 @@ class AudioConnector(object):
                 - y : np.ndarray
                 - sr : int
 
+              If it returns a value, it must be a buffer of the
+              same shape as y.
+
             - sr : int > 0
               The sampling rate from PyAudio
 
@@ -110,13 +113,20 @@ class AudioConnector(object):
 
         # Pass data to the callback
         try:
-            self.callback(y, self.sr, **self.kwargs)
+            y_out = self.callback(y, self.sr, **self.kwargs)
         except Exception as e_callback:
             LOG.error('Exception in callback: {0}'.format(e_callback))
 
+        if y_out is None:
+            # callback was silent, passthru
+            out_data = in_data
+        else:
+            # reinterpret the result
+            out_data = (y_out / self.scale).astype(self.fmt)
+
         # Let pyaudio continue
         if self.output:
-            return (in_data, pyaudio.paContinue)
+            return (out_data, pyaudio.paContinue)
         else:
             return (None, pyaudio.paContinue)
 
